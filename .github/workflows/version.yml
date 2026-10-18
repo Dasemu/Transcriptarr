@@ -1,0 +1,69 @@
+name: Version
+
+on:
+  push:
+    branches: [development, main]
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    if: github.actor != 'github-actions[bot]' && !contains(github.event.head_commit.message, '[skip ci]')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Determine bump type
+        id: bump
+        run: |
+          if [ "${{ github.ref_name }}" = "development" ]; then
+            echo "type=patch" >> "$GITHUB_OUTPUT"
+          else
+            # On main: a minor bump if this push is a merge whose commits all
+            # came from development (an approved development -> main PR),
+            # otherwise a direct hotfix push gets a patch bump.
+            if git log -1 --pretty=%P | grep -q ' ' && \
+               git log -1 --pretty=%s | grep -qiE "development"; then
+              echo "type=minor" >> "$GITHUB_OUTPUT"
+            else
+              echo "type=patch" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+
+      - name: Bump VERSION
+        id: version
+        run: |
+          current=$(cat VERSION)
+          IFS='.' read -r major minor patch <<< "$current"
+          if [ "${{ steps.bump.outputs.type }}" = "minor" ]; then
+            minor=$((minor + 1))
+            patch=0
+          else
+            patch=$((patch + 1))
+          fi
+          new="$major.$minor.$patch"
+          echo "$new" > VERSION
+          echo "new=$new" >> "$GITHUB_OUTPUT"
+
+      - name: Commit and push version bump
+        run: |
+          git add VERSION
+          git commit -m "chore(release): v${{ steps.version.outputs.new }} [skip ci]"
+          git push origin HEAD:${{ github.ref_name }}
+
+      - name: Merge main back into development
+        if: github.ref_name == 'main'
+        run: |
+          git fetch origin development
+          git checkout development
+          git merge --no-edit origin/main
+          git push origin development
