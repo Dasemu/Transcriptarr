@@ -71,3 +71,19 @@ jobs:
           git checkout development
           git merge --no-edit origin/main
           git push origin development
+
+      - name: Create Gitea release
+        if: github.ref_name == 'main'
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="v${{ steps.version.outputs.new }}"
+          prev=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || true)
+          if [ -n "$prev" ]; then range="$prev..HEAD"; else range="HEAD"; fi
+          notes=$(git log "$range" --pretty='- %s' | grep -v 'chore(release)' || true)
+          jq -n --arg tag "$tag" --arg sha "$(git rev-parse HEAD)" --arg body "$notes" \
+            '{tag_name: $tag, target_commitish: $sha, name: $tag, body: $body}' > release.json
+          curl -fsS -X POST \
+            -H "Authorization: token $TOKEN" -H "Content-Type: application/json" \
+            -d @release.json \
+            "${{ github.server_url }}/api/v1/repos/${{ github.repository }}/releases"

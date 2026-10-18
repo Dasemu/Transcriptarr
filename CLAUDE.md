@@ -24,7 +24,7 @@ FastAPI backend under `backend/` (API routers in `backend/api`, core services in
 - No backend linter/formatter (ruff/black/flake8) and no automated test suite (pytest/vitest) are configured yet. Do not assume `npm run lint` passes — it has no config.
 - Single `frontend/package.json` version field; there is no root `package.json`/`pyproject.toml`, so the release workflow tracks the version in the root `VERSION` file.
 
-- CI runs on both Gitea (`.gitea/workflows/ci.yml`) and GitHub (`.github/workflows/ci.yml`); keep them in sync. Versioning (`version.yml`) exists only under `.gitea/workflows/`.
+- CI runs on both Gitea (`.gitea/workflows/ci.yml`) and GitHub (`.github/workflows/ci.yml`); keep them in sync. Versioning and the Gitea release (`version.yml`) exist only under `.gitea/workflows/`; the GitHub release (`.github/workflows/release.yml`) is created when the `v*` tag reaches GitHub.
 
 ## Deployment
 Not yet documented here; no deployment workflow exists in this repo.
