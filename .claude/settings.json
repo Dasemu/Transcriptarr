@@ -1,0 +1,25 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "file=$(cat | python3 -c 'import json,sys; print(json.load(sys.stdin).get(\"tool_input\",{}).get(\"file_path\",\"\"))'); case \"$file\" in *.py) python3 -m py_compile \"$file\" ;; *.ts|*.vue|*.js) if [ -d \"$(dirname \"$file\")/../node_modules\" ] || [ -d frontend/node_modules ]; then (cd frontend && npx --no-install eslint --fix \"${file#frontend/}\" 2>&1 || true); fi ;; esac"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "set -e; python3 -m compileall backend -q; if [ -d frontend/node_modules ]; then (cd frontend && npm run build); else echo 'frontend/node_modules missing, skipping frontend build check'; fi"
+          }
+        ]
+      }
+    ]
+  }
+}
