@@ -63,6 +63,10 @@ jobs:
       - name: Merge main back into development
         if: github.ref_name == 'main'
         run: |
+          if ! git ls-remote --exit-code --heads origin development >/dev/null; then
+            echo "No development branch on the remote; nothing to merge back."
+            exit 0
+          fi
           git fetch origin development
           git checkout development
           git merge --no-edit origin/main
